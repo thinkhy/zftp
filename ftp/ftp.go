@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"fmt"
 )
 
 // EntryType describes the different types of an Entry.
@@ -446,10 +447,64 @@ func parseDirListLine(line string) (*Entry, error) {
 	return e, nil
 }
 
+/*
+type Entry struct {
+	Name string
+	Type EntryType
+	Size uint64
+	Time time.Time
+}*/
+
+// TODO: add parser for z/OS [ 2016-06-12 thinkhy ]
+// Unix File:   -rw-rw-rw-   1 PDS      OPERATOR       0 Jun 12 12:42 @alxmiuss@W9B@
+// PDF dataset: Name      VV.MM   Created       Changed        Size  Init   Mod   Id
+//              USSMINIX  01.26  2008/01/18 2014/04/19 01:10    74    34     0   MEGA
+func parseZosDirListLine(line string) (*Entry, error) {
+	e := &Entry{}
+	var err error
+
+	// Try various time formats that DIR might use, and stop when one works.
+	for _, format := range dirTimeFormats {
+		if len(line) > len(format) {
+			e.Time, err = time.Parse(format, line[:len(format)])
+			if err == nil {
+				line = line[len(format):]
+				break
+			}
+		}
+	}
+	if err != nil {
+		// None of the time formats worked.
+		return nil, errUnsupportedListLine
+	}
+
+	line = strings.TrimLeft(line, " ")
+	if strings.HasPrefix(line, "<DIR>") {
+		e.Type = EntryTypeFolder
+		line = strings.TrimPrefix(line, "<DIR>")
+	} else {
+		space := strings.Index(line, " ")
+		if space == -1 {
+			return nil, errUnsupportedListLine
+		}
+		e.Size, err = strconv.ParseUint(line[:space], 10, 64)
+		if err != nil {
+			return nil, errUnsupportedListLine
+		}
+		e.Type = EntryTypeFile
+		line = line[space:]
+	}
+
+	e.Name = strings.TrimLeft(line, " ")
+	return e, nil
+}
+
+
 var listLineParsers = []func(line string) (*Entry, error){
 	parseRFC3659ListLine,
 	parseLsListLine,
 	parseDirListLine,
+	parseZosDirListLine,  // [ 2016-06-12 thinkhy ] 
 }
 
 // parseListLine parses the various non-standard format returned by the LIST
@@ -506,6 +561,7 @@ func (c *ServerConn) NameList(path string) (entries []string, err error) {
 	return
 }
 
+
 // List issues a LIST FTP command.
 func (c *ServerConn) List(path string) (entries []*Entry, err error) {
 	conn, err := c.cmdDataConnFrom(0, "LIST %s", path)
@@ -519,6 +575,7 @@ func (c *ServerConn) List(path string) (entries []*Entry, err error) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Text()
+		fmt.Println("line: ", line)
 		entry, err := parseListLine(line)
 		if err == nil {
 			entries = append(entries, entry)

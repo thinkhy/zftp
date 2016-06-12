@@ -15,7 +15,7 @@ func checkError(err error) {
 	}
 }
 
-func main() {
+func GetUnixFile() {
 	// thinkTime := 3000 * time.Millisecond
 	server := os.Getenv("TEST_FTP_SERVER")
 	user := os.Getenv("TEST_FTP_USER")
@@ -26,6 +26,7 @@ func main() {
 	c, err := ftp.DialTimeout(addr, 5*time.Second)
 	checkError(err)
 	fmt.Println("FTP Connected")
+	defer c.Quit()
 
 	// login
 	err = c.Login(user, password)
@@ -54,6 +55,52 @@ func main() {
 	str := string(data)
 	fmt.Println("syslog.log: ", str)
 
-	c.Quit()
 	fmt.Println("[End]")
+}
+
+func GetPDS() {
+	// thinkTime := 3000 * time.Millisecond
+	server := os.Getenv("TEST_FTP_SERVER")
+	user := os.Getenv("TEST_FTP_USER")
+	password := os.Getenv("TEST_FTP_PASSWORD")
+	addr := fmt.Sprintf("%s:21", server)
+
+	// dail
+	c, err := ftp.DialTimeout(addr, 5*time.Second)
+	checkError(err)
+	fmt.Println("FTP Connected")
+	defer c.Quit()
+
+	// login
+	err = c.Login(user, password)
+	checkError(err)
+	//defer c.Logout()
+
+
+        // Change dir
+	//err = c.ChangeDir("..")
+	//err = c.ChangeDir("..")
+	//err = c.ChangeDir("..")
+	// err = c.ChangeDir("OMVSSP.SETUP.JCL")
+	//checkError(err)
+	//fmt.Println("Change DIR to OMVSSP.SETUP.JCL")
+
+	err = c.ChangeDir("..")
+	err = c.ChangeDir("..")
+	err = c.ChangeDir("..")
+	// err = c.ChangeDir("OMVSSP.SETUP.JCL")
+	err = c.ChangeDir("/tmp")
+	checkError(err)
+	fmt.Println("Change DIR to OMVSSP.SETUP.JCL")
+	entries, err := c.List("") 
+	checkError(err)
+	for _, et := range entries {
+		fmt.Println("Name: ", et.Name)
+	}
+	
+}
+
+func main() {
+	// GetUnixFile()
+	GetPDS()
 }

@@ -96,9 +96,12 @@ func SubmitJob() {
 	checkError(err)*/
 
 	r := bufio.NewReader(f)
-	fmt.Println("Stor omvssp.setup.jcl(setup)")
-	err = c.Stor("'omvssp.setup.jcl(setuphy)'", r)
+	// fmt.Println("Stor omvssp.setup.jcl(setup)")
+	// err = c.Stor("'omvssp.setup.jcl(setuphy)'", r)
+	// jobid, err := c.SubmitJob("'omvssp.setup.jcl(setuphy)'", r)
+	jobid, err := c.SubmitJob(r)
 	checkError(err)
+	fmt.Println("JOBID: ", jobid)
 	fmt.Println("[Done]")
 }
 
@@ -136,7 +139,7 @@ func GetPDS() {
 	err = c.ChangeDir("/tmp")
 	checkError(err)
 	fmt.Println("Change DIR to OMVSSP.SETUP.JCL")
-	entries, err := c.List("") 
+	entries, err := c.List("")
 	checkError(err)
 	for _, et := range entries {
 		fmt.Println("Name: ", et.Name)

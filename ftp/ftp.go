@@ -97,6 +97,7 @@ func DialTimeout(addr string, timeout time.Duration) (*ServerConn, error) {
 	return c, nil
 }
 
+
 // Login authenticates the client with specified user and password.
 //
 // "anonymous"/"anonymous" is a common user/password scheme for FTP servers
@@ -118,8 +119,8 @@ func (c *ServerConn) Login(user, password string) error {
 		return errors.New(message)
 	}
 
-	// Switch to binary mode
-	_, _, err = c.cmd(StatusCommandOK, "TYPE I")
+	// Switch to text mode [ bin==>text: thinkhy 2016-06-14 ]
+	_, _, err = c.cmd(StatusCommandOK, "TYPE A")
 	if err != nil {
 		return err
 	}
@@ -258,9 +259,9 @@ func (c *ServerConn) Cmd(format string, args ...interface{}) error {
 	return err
 }
 
-// cmdDataConnFrom executes a command which require a FTP data connection.
+// CmdDataConnFrom executes a command which require a FTP data connection.
 // Issues a REST FTP command to specify the number of bytes to skip for the transfer.
-func (c *ServerConn) cmdDataConnFrom(offset uint64, format string, args ...interface{}) (net.Conn, error) {
+func (c *ServerConn) CmdDataConnFrom(offset uint64, format string, args ...interface{}) (net.Conn, error) {
 	conn, err := c.openDataConn()
 	if err != nil {
 		return nil, err
@@ -543,7 +544,7 @@ func (e *Entry) setTime(fields []string) (err error) {
 
 // NameList issues an NLST FTP command.
 func (c *ServerConn) NameList(path string) (entries []string, err error) {
-	conn, err := c.cmdDataConnFrom(0, "NLST %s", path)
+	conn, err := c.CmdDataConnFrom(0, "NLST %s", path)
 	if err != nil {
 		return
 	}
@@ -564,7 +565,7 @@ func (c *ServerConn) NameList(path string) (entries []string, err error) {
 
 // List issues a LIST FTP command.
 func (c *ServerConn) List(path string) (entries []*Entry, err error) {
-	conn, err := c.cmdDataConnFrom(0, "LIST %s", path)
+	conn, err := c.CmdDataConnFrom(0, "LIST %s", path)
 	if err != nil {
 		return
 	}
@@ -633,7 +634,7 @@ func (c *ServerConn) Retr(path string) (io.ReadCloser, error) {
 //
 // The returned ReadCloser must be closed to cleanup the FTP data connection.
 func (c *ServerConn) RetrFrom(path string, offset uint64) (io.ReadCloser, error) {
-	conn, err := c.cmdDataConnFrom(offset, "RETR %s", path)
+	conn, err := c.CmdDataConnFrom(offset, "RETR %s", path)
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +656,7 @@ func (c *ServerConn) Stor(path string, r io.Reader) error {
 //
 // Hint: io.Pipe() can be used if an io.Writer is required.
 func (c *ServerConn) StorFrom(path string, r io.Reader, offset uint64) error {
-	conn, err := c.cmdDataConnFrom(offset, "STOR %s", path)
+	conn, err := c.CmdDataConnFrom(offset, "STOR %s", path)
 	if err != nil {
 		return err
 	}
@@ -745,7 +746,7 @@ func (r *response) Close() error {
 // NOTE: this function MUST be invoked under JES mode(after issuing SITE FILETYPE=JES)
 // [ 2016-06-13 thinkhy ]
 func (c *ServerConn) SubmitJob(r io.Reader) (jobid string, err error) {
-	conn, err := c.cmdDataConnFrom(0, "STOR %s", "'ZFTP.X.Y.Z'")
+	conn, err := c.CmdDataConnFrom(0, "STOR %s", "'ZFTP.X.Y.Z'")
 	if err != nil {
 		return "",err
 	}
@@ -774,3 +775,31 @@ func (c *ServerConn) SubmitJob(r io.Reader) (jobid string, err error) {
 		return jobid,nil
 	}
 }
+
+/*
+func (c *ServerConn) GetJobByName(jobname string) (entries []*Entry, err error) {
+	conn, err := c.CmdDataConnFrom(0, "LIST %s", path)
+	if err != nil {
+		return
+	}
+
+	r := &response{conn, c}
+	defer r.Close()
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println("line: ", line)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return
+}*/
+
+// [ 2016-06-14 thinkhy ]
+func (c *ServerConn) Connection() *textproto.Conn {
+	return c.conn
+}
+
+

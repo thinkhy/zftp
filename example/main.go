@@ -57,7 +57,6 @@ func GetUnixFile() {
 	str := string(data)
 	fmt.Println("syslog.log: ", str)
 
-
 	fmt.Println("[End]")
 }
 

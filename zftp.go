@@ -1,12 +1,13 @@
 package zftp
 
 import (
-	"time"
 	"io"
+	"time"
 	//"bufio"
 	ftp "./ftp"
-	"strings"
+	// "strings"
 	"fmt"
+	"regexp"
 )
 
 type Zftp struct {
@@ -82,31 +83,27 @@ func (z *Zftp) GetPdsDataset(dataset, dir string) (err error) {
 func (z *Zftp) SubmitJob(r io.Reader) (jobid string, err error) {
 	conn, err := z.CmdDataConnFrom(0, "STOR %s", "'ZFTP.X.Y.Z'")
 	if err != nil {
-		return "",err
+		return "", err
 	}
 
 	_, err = io.Copy(conn, r)
 	conn.Close()
 	if err != nil {
-		return "",err
+		return "", err
 	}
 
-	_, message, err := z.Connection().ReadResponse(ftp.StatusRequestedFileActionOK)
+	code, message, err := z.Connection().ReadResponse(ftp.StatusRequestedFileActionOK)
+	fmt.Printf("code: %d message: %s\n", code, message)
 	if err != nil {
-		return "",err
+		return "", err
 	} else {
-	        // Get Job ID: JOB\d{5}
-		start := strings.Index(message, "JOB")
-		if start == -1 {
-			err = fmt.Errorf("Failed to submit job %s", message)
-			return "",err
-		}
-		end := start + 3  // skim over "JOB"
-		for end < len(message) && message[end] >= '0' && message[end] <= '9' {
-		  end++
-		}
-		jobid := message[start:end]
-		return jobid,nil
+		// Get Job ID: J(OB|00)\d{5}
+		// It is known to JES as J0013819
+		re, _ := regexp.Compile(`It is known to JES as ([\w\d]{8})`)
+		result := re.FindStringSubmatch(message)
+		// The number of fields in the resulting array always matches the number of groups plus one
+		jobid := result[1]
+		return jobid, nil
 	}
 	return "", nil
 }
@@ -115,11 +112,49 @@ func (z *Zftp) SubmitRemoteJob(dataset string) (jobid string, err error) {
 	return "", nil
 }
 
+func (z *Zftp) PurgeJob(jobid string) (err error) {
+	// JESJOBNAME=MEGA*, JESSTATUS=ALL and JESOWNER=MEGA
+	err = z.Cmd("SITE JESJOBNAME=*")
+	if err != nil {
+		return err
+	}
+	err = z.Cmd("SITE JESOWNER=*")
+	if err != nil {
+		return err
+	}
+	err = z.Cmd("SITE JESSTATUS=ALL")
+	if err != nil {
+		return err
+	}
+	return z.Delete(jobid)
+}
+
 func (z *Zftp) GetJoblogByID(jobid string) (joblog string, err error) {
 	return "", nil
 }
 
 func (z *Zftp) GetJobStatusByID(jobid string) (status string, err error) {
+	conn, err := z.CmdDataConnFrom(0, "LIST %s", jobid)
+	if err != nil {
+		return "", err
+	}
+
+	r := &ftp.Response{conn, z}
+	defer r.Close()
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println("line: ", line)
+		/*entry, err := parseListLine(line)
+		if err == nil {
+			entries = append(entries, entry)
+		}
+		*/
+	}
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
 	return "", nil
 }
 

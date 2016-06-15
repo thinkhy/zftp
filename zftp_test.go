@@ -2,13 +2,13 @@ package zftp
 
 import (
 	"github.com/stretchr/testify/assert"
-	"testing"
 	"strings"
+	"testing"
 	//"bytes"
-	"os"
 	"bufio"
 	"fmt"
 	"io/ioutil"
+	"os"
 )
 
 func TestPutAndGetUnixFile(t *testing.T) {
@@ -60,10 +60,10 @@ func TestSubmitJob(t *testing.T) {
 	assert.Nil(t, err)
 	err = z.SetJesMode()
 	assert.Nil(t, err)
-// Do not use an end-of-line sequence other than CRLF if the server is a z/OS FTP server.
-// The z/OS FTP server supports only the CRLF("\r\n") value for incoming ASCII data.
-	jcl := 
-`
+	// Do not use an end-of-line sequence other than CRLF if the server is a z/OS FTP server.
+	// The z/OS FTP server supports only the CRLF("\r\n") value for incoming ASCII data.
+	jcl :=
+		`
 //HELLOWLD JOB 'TT',MSGLEVEL=(1,1),MSGCLASS=H,CLASS=A,USER=MEGA 
 //HELLOWLD EXEC PGM=IKJEFT01 
 //SYSTSPRT DD SYSOUT=* 
@@ -74,13 +74,20 @@ BPXBATCH SH echo "hello world"
 	jcl = strings.Replace(jcl, "\r\n", "\n", -1)
 	jcl = strings.Replace(jcl, "\n", "\r\n", -1)
 	r := strings.NewReader(jcl)
+	fmt.Println("Submit job")
 	jobid, err := z.SubmitJob(r)
 	assert.Nil(t, err)
 	fmt.Println("jobid:", jobid)
+	fmt.Println("Purge job")
+	err, _ = z.GetJobStatusByID(jobid)
+	assert.Nil(t, err)
+	err = z.PurgeJob(jobid)
+	assert.Nil(t, err)
 	err = z.Quit()
 	assert.Nil(t, err)
 }
 
 func TestSubmitRemoteJob(t *testing.T) {
-
 }
+
+

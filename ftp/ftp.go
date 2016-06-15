@@ -40,7 +40,7 @@ type Entry struct {
 }
 
 // response represent a data-connection
-type response struct {
+type Response struct {
 	conn net.Conn
 	c    *ServerConn
 }
@@ -549,7 +549,7 @@ func (c *ServerConn) NameList(path string) (entries []string, err error) {
 		return
 	}
 
-	r := &response{conn, c}
+	r := &Response{conn, c}
 	defer r.Close()
 
 	scanner := bufio.NewScanner(r)
@@ -570,7 +570,7 @@ func (c *ServerConn) List(path string) (entries []*Entry, err error) {
 		return
 	}
 
-	r := &response{conn, c}
+	r := &Response{conn, c}
 	defer r.Close()
 
 	scanner := bufio.NewScanner(r)
@@ -639,7 +639,7 @@ func (c *ServerConn) RetrFrom(path string, offset uint64) (io.ReadCloser, error)
 		return nil, err
 	}
 
-	return &response{conn, c}, nil
+	return &Response{conn, c}, nil
 }
 
 // Stor issues a STOR FTP command to store a file to the remote FTP server.
@@ -725,12 +725,12 @@ func (c *ServerConn) Quit() error {
 }
 
 // Read implements the io.Reader interface on a FTP data connection.
-func (r *response) Read(buf []byte) (int, error) {
+func (r *Response) Read(buf []byte) (int, error) {
 	return r.conn.Read(buf)
 }
 
 // Close implements the io.Closer interface on a FTP data connection.
-func (r *response) Close() error {
+func (r *Response) Close() error {
 	err := r.conn.Close()
 	_, _, err2 := r.c.conn.ReadResponse(StatusClosingDataConnection)
 	if err2 != nil {

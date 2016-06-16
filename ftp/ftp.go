@@ -798,8 +798,11 @@ func (c *ServerConn) GetJobByName(jobname string) (entries []*Entry, err error) 
 }*/
 
 // [ 2016-06-14 thinkhy ]
-func (c *ServerConn) Connection() *textproto.Conn {
+func (c *ServerConn) GetConn() *textproto.Conn {
 	return c.conn
 }
 
+func (c *ServerConn) GetResponse(conn net.Conn) *Response {
+	return &Response{conn, c}
+}
 

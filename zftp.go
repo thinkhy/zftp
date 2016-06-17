@@ -1,10 +1,10 @@
 package zftp
 
 import (
+	ftp "./ftp"
+	"bufio"
 	"io"
 	"time"
-	"bufio"
-	ftp "./ftp"
 	// "strings"
 	"fmt"
 	"regexp"
@@ -138,7 +138,7 @@ func (z *Zftp) GetJobStatusByID(jobid string) (j *Job, err error) {
 	z.generizeJesEnv()
 	conn, err := z.CmdDataConnFrom(0, "LIST %s", jobid)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	r := z.GetResponse(conn)
@@ -148,7 +148,7 @@ func (z *Zftp) GetJobStatusByID(jobid string) (j *Job, err error) {
 	scanner.Scan()
 	firstLine := scanner.Text()
 	// The first line should be TiTLE
-	//   JOBNAME  JOBID    OWNER    STATUS CLASS 
+	//   JOBNAME  JOBID    OWNER    STATUS CLASS
 	validTitle := regexp.MustCompile(`\s*JOBNAME\s+JOBID\s+OWNER\s+STATUS\s+CLASS`)
 	if validTitle.MatchString(firstLine) == false {
 		return nil, fmt.Errorf("Invalid list title: ", firstLine)
@@ -157,21 +157,20 @@ func (z *Zftp) GetJobStatusByID(jobid string) (j *Job, err error) {
 	jobEntry := regexp.MustCompile(`\s*(\w+)\s+(\w+)\s+(\w+)\s+(\w+)\s+(\w+)`)
 	scanner.Scan()
 	line := scanner.Text()
-	fmt.Println("line: ", line)
 	result := jobEntry.FindStringSubmatch(line)
 	if result == nil {
 		return nil, fmt.Errorf("Unmatched job entry: ", line)
 	}
-	//   JOBNAME  JOBID    OWNER    STATUS CLASS 
+	//   JOBNAME  JOBID    OWNER    STATUS CLASS
 	j = &Job{
 		Jobname: result[1],
-		Jobid:  result[2],	
-		Owner:  result[3],	
-		Status: result[4],	
-		Class:  result[5],
+		Jobid:   result[2],
+		Owner:   result[3],
+		Status:  result[4],
+		Class:   result[5],
 	}
 
-	return j,nil
+	return j, nil
 }
 
 func (z *Zftp) GetJobStatusByName(jobid string) (status string, err error) {
@@ -193,4 +192,9 @@ func (z *Zftp) generizeJesEnv() error {
 		return err
 	}
 	return nil
+}
+
+func (z *Zftp) GetJobLog(jobid string) (r io.ReadCloser, err error) {
+	z.generizeJesEnv()
+	return z.Retr(jobid+".x")
 }

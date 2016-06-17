@@ -82,6 +82,14 @@ BPXBATCH SH echo "hello world"
 	j, err := z.GetJobStatusByID(jobid)
 	assert.Nil(t, err)
 	fmt.Println("job entry:", j)
+
+	rc, err := z.GetJobLog(jobid)
+	assert.Nil(t, err)
+	data, err := ioutil.ReadAll(rc)
+	assert.Nil(t, err)
+	rc.Close()
+	assert.True(t, strings.Contains(string(data), `BPXBATCH SH echo "hello world"`))
+
 	err = z.PurgeJob(jobid)
 	assert.Nil(t, err)
 	err = z.Quit()
@@ -90,5 +98,3 @@ BPXBATCH SH echo "hello world"
 
 func TestSubmitRemoteJob(t *testing.T) {
 }
-
-

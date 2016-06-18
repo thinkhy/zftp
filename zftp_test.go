@@ -121,4 +121,36 @@ BPXBATCH SH echo "hello world"
 }
 
 func TestSubmitRemoteJob(t *testing.T) {
+	server := os.Getenv("TEST_FTP_SERVER")
+	user := os.Getenv("TEST_FTP_USER")
+	password := os.Getenv("TEST_FTP_PASSWORD")
+	psdataset := os.Getenv("TEST_FTP_DATASET_PS")
+	addr := fmt.Sprintf("%s:21", server)
+	fmt.Println(addr)
+	z, err := Dial(addr, 30)
+	assert.Nil(t, err)
+	err = z.Login(user, password)
+	assert.Nil(t, err)
+	// err = z.SetJesMode()
+	// assert.Nil(t, err)
+	fmt.Println("Submit job")
+	jobid, err := z.SubmitRemoteJob(psdataset)
+	assert.Nil(t, err)
+	fmt.Println("jobid:", jobid)
+	fmt.Println("Purge job")
+	j, err := z.GetJobStatusByID(jobid)
+	assert.Nil(t, err)
+	fmt.Println("job entry:", j)
+
+	rc, err := z.GetJobLog(jobid)
+	assert.Nil(t, err)
+	data, err := ioutil.ReadAll(rc)
+	assert.Nil(t, err)
+	rc.Close()
+	assert.True(t, strings.Contains(string(data), `BPXBATCH SH echo "hello world"`))
+
+	err = z.PurgeJob(jobid)
+	assert.Nil(t, err)
+	err = z.Quit()
+	assert.Nil(t, err)
 }

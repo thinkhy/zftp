@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"io"
 	"bytes"
+	"io/ioutil"
 	"time"
 	// "strings"
 	"fmt"
@@ -113,11 +114,16 @@ func (z *Zftp) SubmitJob(r io.Reader) (jobid string, err error) {
 		jobid := result[1]
 		return jobid, nil
 	}
-	return "", nil
 }
 
 func (z *Zftp) SubmitRemoteJob(dataset string) (jobid string, err error) {
-	return "", nil
+	z.SetSeqMode()
+	r, err := z.GetPsDataset(dataset)
+	data, err := ioutil.ReadAll(r)
+	z.SetJesMode() // will hang at HERE [TODO 2016-06-18]
+	br := bytes.NewBuffer(data)
+	fmt.Println("SubmitJob")
+	return z.SubmitJob(br)
 }
 
 func (z *Zftp) PurgeJob(jobid string) (err error) {

@@ -4,6 +4,8 @@ Golang client for z/OS FTP server
 zftp is forked from github.com/jlaffaye/ftp and makes some changes to accommdate to z/OS FTP
 server
 
+Currently zftp only supports z/OS FTP server with JESINTERFACELEVEL=2
+
 Install
 -----------
 

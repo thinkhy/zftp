@@ -739,64 +739,6 @@ func (r *Response) Close() error {
 	return err
 }
 
-// SubmitJob issues a STOR FTP command to submit a local JCL file to the remote FTP server under JES mode.
-// In JES mode, Stor will not create the specified file, but send to data stream to JES and return a string 
-// with JOB ID.
-// Hint: io.Pipe() can be used if an io.Writer is required.
-// NOTE: this function MUST be invoked under JES mode(after issuing SITE FILETYPE=JES)
-// [ 2016-06-13 thinkhy ]
-func (c *ServerConn) SubmitJob(r io.Reader) (jobid string, err error) {
-	conn, err := c.CmdDataConnFrom(0, "STOR %s", "'ZFTP.X.Y.Z'")
-	if err != nil {
-		return "",err
-	}
-
-	_, err = io.Copy(conn, r)
-	conn.Close()
-	if err != nil {
-		return "",err
-	}
-
-	_, message, err := c.conn.ReadResponse(StatusRequestedFileActionOK)
-	if err != nil {
-		return "",err
-	} else {
-	        // Get Job ID: JOB\d{5}
-		start := strings.Index(message, "JOB")
-		if start == -1 {
-			err = fmt.Errorf("Failed to submit job %s", message)
-			return "",err
-		}
-		end := start + 3  // skim over "JOB"
-		for end < len(message) && message[end] >= '0' && message[end] <= '9' {
-		  end++
-		}
-		jobid := message[start:end]
-		return jobid,nil
-	}
-}
-
-/*
-func (c *ServerConn) GetJobByName(jobname string) (entries []*Entry, err error) {
-	conn, err := c.CmdDataConnFrom(0, "LIST %s", path)
-	if err != nil {
-		return
-	}
-
-	r := &response{conn, c}
-	defer r.Close()
-
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Println("line: ", line)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return
-}*/
-
 // [ 2016-06-14 thinkhy ]
 func (c *ServerConn) GetConn() *textproto.Conn {
 	return c.conn

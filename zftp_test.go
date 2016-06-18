@@ -11,10 +11,11 @@ import (
 	"os"
 )
 
-func TestPutAndGetUnixFile(t *testing.T) {
+func TestPutGetDeleteUnixFile(t *testing.T) {
 	server := os.Getenv("TEST_FTP_SERVER")
 	user := os.Getenv("TEST_FTP_USER")
 	password := os.Getenv("TEST_FTP_PASSWORD")
+	// psdataset := os.Getenv("TEST_FTP_DATASET_PS")
 	addr := fmt.Sprintf("%s:21", server)
 	fmt.Println(addr)
 	z, err := Dial(addr, 30)
@@ -38,11 +39,35 @@ func TestPutAndGetUnixFile(t *testing.T) {
 	str := string(data)
 	data1, err := ioutil.ReadFile(local)
 	assert.Equal(t, string(data1), str)
+	err = z.DeleteUnixFile(remote)
+	assert.Nil(t, err)
+	_, err = z.GetUnixFile(remote)
+	assert.NotNil(t, err)
 	err = z.Quit()
 	assert.Nil(t, err)
 }
 
 func TestGetPsDataset(t *testing.T) {
+	server := os.Getenv("TEST_FTP_SERVER")
+	user := os.Getenv("TEST_FTP_USER")
+	password := os.Getenv("TEST_FTP_PASSWORD")
+	psdataset := os.Getenv("TEST_FTP_DATASET_PS")
+	addr := fmt.Sprintf("%s:21", server)
+	fmt.Println(addr)
+	z, err := Dial(addr, 30)
+	assert.Nil(t, err)
+	err = z.Login(user, password)
+	assert.Nil(t, err)
+	err = z.SetSeqMode()
+	assert.Nil(t, err)
+	r, err := z.GetPsDataset(psdataset)
+	assert.Nil(t, err)
+	defer r.Close()
+	data, err := ioutil.ReadAll(r)
+	assert.Nil(t, err)
+	assert.True(t, len(string(data)) > 0)
+	err = z.Quit()
+	assert.Nil(t, err)
 }
 
 func TestGetPdsDataset(t *testing.T) {
@@ -71,8 +96,7 @@ func TestSubmitJob(t *testing.T) {
 BPXBATCH SH echo "hello world"
 /*
 `
-	jcl = strings.Replace(jcl, "\r\n", "\n", -1)
-	jcl = strings.Replace(jcl, "\n", "\r\n", -1)
+	jcl = z.Unix2Dos(jcl)
 	r := strings.NewReader(jcl)
 	fmt.Println("Submit job")
 	jobid, err := z.SubmitJob(r)

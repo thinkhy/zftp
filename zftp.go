@@ -1,9 +1,10 @@
 package zftp
 
 import (
-	ftp "./ftp"
+	ftp "github.com/thinkhy/zftp/ftp"
 	"bufio"
 	"io"
+	"bytes"
 	"time"
 	// "strings"
 	"fmt"
@@ -33,16 +34,6 @@ func Dial(adr string, timeout time.Duration) (*Zftp, error) {
 		return &z, nil
 	}
 }
-
-/*
-func (z *Zftp) Login(user, password string) (err error) {
-	return nil
-}
-
-func (z *Zftp) Quit() (err error) {
-	return nil
-}
-*/
 
 func (z *Zftp) SetSeqMode() (err error) {
 	return z.Cmd("SITE FILETYPE=SEQ")
@@ -80,8 +71,13 @@ func (z *Zftp) PutUnixFile(r io.Reader, remote string) (err error) {
 	return err
 }
 
-func (z *Zftp) GetPsDataset(remote, local string) (err error) {
-	return nil
+func (z *Zftp) DeleteUnixFile(remote string) (err error) {
+	return z.Delete(remote)
+}
+
+func (z *Zftp) GetPsDataset(dataset string) (r io.ReadCloser, err error) {
+	dsname := fmt.Sprintf("'%s'", dataset)
+	return z.Retr(dsname)
 }
 
 func (z *Zftp) GetPdsDataset(dataset, dir string) (err error) {
@@ -102,8 +98,7 @@ func (z *Zftp) SubmitJob(r io.Reader) (jobid string, err error) {
 		return "", err
 	}
 
-	code, message, err := z.GetConn().ReadResponse(ftp.StatusRequestedFileActionOK)
-	fmt.Printf("code: %d message: %s\n", code, message)
+	_, message, err := z.GetConn().ReadResponse(ftp.StatusRequestedFileActionOK)
 	if err != nil {
 		return "", err
 	} else {
@@ -112,7 +107,7 @@ func (z *Zftp) SubmitJob(r io.Reader) (jobid string, err error) {
 		re, _ := regexp.Compile(`It is known to JES as ([\w\d]{8})`)
 		result := re.FindStringSubmatch(message)
 		if result == nil {
-			return "", fmt.Errorf("Unmatched text: message")
+			return "", fmt.Errorf("reponse text: %s", message)
 		}
 		// The number of fields in the resulting array always matches the number of groups plus one
 		jobid := result[1]
@@ -196,5 +191,28 @@ func (z *Zftp) generizeJesEnv() error {
 
 func (z *Zftp) GetJobLog(jobid string) (r io.ReadCloser, err error) {
 	z.generizeJesEnv()
-	return z.Retr(jobid+".x")
+	return z.Retr(jobid + ".x")
 }
+
+func (z *Zftp) Unix2Dos(text string) string {
+	var buffer bytes.Buffer
+	cr := false
+	for i := 0; i < len(text); i++ {
+	   switch text[i] {
+	  	case '\r', '\n':
+			cr = true
+		default:
+			if cr {
+				buffer.WriteString("\r\n")
+			} 
+			cr = false
+			buffer.WriteByte(text[i])
+	   }
+	}
+	if cr {
+		buffer.WriteString("\r\n")
+	}
+
+	return  buffer.String()
+}
+

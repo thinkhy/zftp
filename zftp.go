@@ -18,11 +18,11 @@ type Zftp struct {
 
 /* JOBNAME  JOBID    OWNER    STATUS CLASS */
 type Job struct {
-	Jobname string
-	Jobid   string
-	Owner   string
-	Status  string
-	Class   string
+	Jobname string `bson:"jobname,omitempty" json:"jobname,omitempty"`
+	Jobid   string `bson:"jobid,omitempty" json:"jobid,omitempty"`
+	Owner   string `bson:"owner,omitempty" json:"owner,omitempty"`
+	Status  string `bson:"status,omitempty" json:"status,omitempty"`
+	Class   string `bson:"class,omitempty" json:"class,omitempty"`
 }
 
 func Dial(adr string, timeout time.Duration) (*Zftp, error) {

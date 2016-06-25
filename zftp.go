@@ -1,10 +1,10 @@
 package zftp
 
 import (
-	ftp "github.com/thinkhy/zftp/ftp"
 	"bufio"
-	"io"
 	"bytes"
+	ftp "github.com/thinkhy/zftp/ftp"
+	"io"
 	"io/ioutil"
 	"time"
 	// "strings"
@@ -28,7 +28,7 @@ type Job struct {
 func Dial(adr string, timeout time.Duration) (*Zftp, error) {
 	var err error
 	var z Zftp
-	z.ServerConn, err = ftp.DialTimeout(adr, timeout*time.Second)
+	z.ServerConn, err = ftp.DialTimeout(adr, timeout)
 	if err != nil {
 		return nil, err
 	} else {
@@ -204,21 +204,20 @@ func (z *Zftp) Unix2Dos(text string) string {
 	var buffer bytes.Buffer
 	cr := false
 	for i := 0; i < len(text); i++ {
-	   switch text[i] {
-	  	case '\r', '\n':
+		switch text[i] {
+		case '\r', '\n':
 			cr = true
 		default:
 			if cr {
 				buffer.WriteString("\r\n")
-			} 
+			}
 			cr = false
 			buffer.WriteByte(text[i])
-	   }
+		}
 	}
 	if cr {
 		buffer.WriteString("\r\n")
 	}
 
-	return  buffer.String()
+	return buffer.String()
 }
-
